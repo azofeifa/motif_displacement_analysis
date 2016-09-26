@@ -15,3 +15,10 @@ To download the jupyter / ipython notebook software please go to: http://jupyter
 
 Please feel free to contact me with errors, bugs or  additional features at joseph[dot]azofeifa[at]colorado[dot]edu
 
+
+
+![alt tag](https://github.com/azofeifa/motif_displacement_analysis/images/pic2)
+
+![alt tag](https://github.com/azofeifa/motif_displacement_analysis/images/pic1)
+
+![alt tag](https://github.com/azofeifa/motif_displacement_analysis/images/pic3)
