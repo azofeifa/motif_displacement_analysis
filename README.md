@@ -17,8 +17,8 @@ Please feel free to contact me with errors, bugs or  additional features at jose
 
 
 
-![alt tag](https://github.com/azofeifa/motif_displacement_analysis/images/pic2)
+![alt tag](https://github.com/azofeifa/motif_displacement_analysis/blob/master/images/pic2.png)
 
-![alt tag](https://github.com/azofeifa/motif_displacement_analysis/images/pic1)
+![alt tag](https://github.com/azofeifa/motif_displacement_analysis/blob/master/images/pic1.png)
 
-![alt tag](https://github.com/azofeifa/motif_displacement_analysis/images/pic3)
+![alt tag](https://github.com/azofeifa/motif_displacement_analysis/blob/master/images/pic3.png)
