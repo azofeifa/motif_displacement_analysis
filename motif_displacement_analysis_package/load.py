@@ -75,7 +75,7 @@ def motif_displacements_raw(FILE):
     FH,G=open(FILE, 'r'),{}
     collect=False
     for line in FH:
-        if collect and "Empiracle" in line:
+        if collect and ("Empiracle" in line or "Multi" in line):
             break
         elif not collect and "Binned" in line:
             collect=True
