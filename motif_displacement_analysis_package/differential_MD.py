@@ -1,10 +1,24 @@
+import sys
+sys.path.append("/Users/joazofeifa/Lab/motif_displacement_analysis/motif_displacement_analysis_package/")
 import matplotlib.pyplot as plt
 import numpy as np,math
 from scipy.interpolate import spline
 from scipy.special import erf
 import time
 import matplotlib as mpl
-from load import despine
+def despine(ax,right=True, top=True,left=False, bottom=False):
+    if right:
+        ax.yaxis.set_ticks_position('left')
+        ax.spines['right'].set_visible(False)
+    if left:
+        ax.yaxis.set_ticks_position('left')
+        ax.spines['left'].set_visible(False)
+    if bottom:
+        ax.xaxis.set_ticks_position('bottom')
+        ax.spines['bottom'].set_visible(False)
+    if top:
+        ax.spines['top'].set_visible(False)
+        ax.xaxis.set_ticks_position('bottom')
 
 
 class PSSM:
@@ -55,7 +69,7 @@ class mds_frame:
                     self.insert(motif,exp_ID,scores[P], NS[P])
             FH.close()
 
-    def compute_pvalue(self, motif,  b,a):
+    def compute_pvalue(self, motif,  b,a,mean=0):
         P1      = self.motif_models[motif].P[a]
         P2      = self.motif_models[motif].P[b]
         N1      = self.motif_models[motif].N[a]
@@ -64,27 +78,31 @@ class mds_frame:
             return 0.5
         p       = (P1.dot(N1) + P2.dot(N2))  / (sum(N1)+sum(N2))
         SE      = math.sqrt(p*(1-p)*( (1.0/sum(N1)) + (1.0/sum(N2))  ))
-        Z       = (np.mean(P2)-np.mean(P1)) / SE
+        Z       = (np.mean(P2)-np.mean(P1)-mean) / SE
         pval    = 0.5*(1.0 + erf(Z / math.sqrt(2.0) ))
         return pval
 
     def dMDS(self, motif, b,a):
 
-        return np.mean(self.motif_models[motif].P[b])-np.mean(self.motif_models[motif].P[a])
+        return np.mean(self.motif_models[motif].P[b])- np.mean(self.motif_models[motif].P[a])
     def dN(self, motif, b,a ):
         return np.mean(self.motif_models[motif].N[a]) + np.mean(self.motif_models[motif].N[b])
 
-    def differential_single(self, A,B, pval_threshold=pow(10,-5),ax=None,OUT=""):
+    def differential_single(self, A,B, pval_threshold=pow(10,-5),ax=None,OUT="",
+        xlabel=False,ylabel=False,legend=True,AX2=None,title=""):
         self.to_array()
         for i in (A,B):
             if len([1 for m in self.motifs if i not in self.motif_models[m].N])>0:
                 print "Experiment Entry: \""+i+"\"is not in current mds_frame"
                 print "loaded and available options are: " + ",".join(self.EXPS.keys())
                 return False
-        
+        S       = False
         if ax is None:
-            F   = plt.figure(figsize=(12,7))
-            ax  = plt.gca()
+            F   = plt.figure(figsize=(12,7),facecolor="white")
+            ax  = F.add_axes([0.1,0.1,0.7,0.8])
+            ax2  = F.add_axes([0.8,0.1,0.2,0.8])
+            AX2     = True
+            S      = True
         FHW     = None
         if OUT:
             try:
@@ -93,13 +111,15 @@ class mds_frame:
                 pass
         
 
-        x     = [ self.dN(m, B,A) for m in self.motifs]
-        y     = [ self.dMDS(m, B,A) for m in self.motifs]
-        z     = [ self.compute_pvalue(m,B,A) for m in self.motifs]
+        x     = [ self.dN(m, B,A) for m in self.motifs if "CPEB" not in m]
+        y     = [ self.dMDS(m, B,A) for m in self.motifs if "CPEB" not in m]
+        MEAN   = np.mean(y)
+        z     = [ self.compute_pvalue(m,B,A,mean=MEAN) for m in self.motifs if "CPEB" not in m]
 
 
-        ups   = [ (k,i,j,self.motifs[l]) for l,(i,j,k) in enumerate(zip(x,y,z)) if i > 30 and  k > (1.0 - pval_threshold)]
-        downs = [ (k,i,j,self.motifs[l]) for l,(i,j,k) in enumerate(zip(x,y,z)) if i > 30 and  k < pval_threshold]
+        ups   = [ (k,i,j,self.motifs[l]) for l,(i,j,k) in enumerate(zip(x,y,z)) if i > 30 and j > 0.05 and  k > (1.0 - pval_threshold)]
+        print ups
+        downs = [ (k,i,j,self.motifs[l]) for l,(i,j,k) in enumerate(zip(x,y,z)) if i > 30 and j < -0.045 and  k < pval_threshold]
         nC    = [ (k,i,j,self.motifs[l]) for l,(i,j,k) in enumerate(zip(x,y,z)) if i > 30 and  pval_threshold < k < (1.0 - pval_threshold)]
         lbl   = r"$p-value<10^{" + str(int(math.log(pval_threshold,10))) + "}$"
         if len(ups):
@@ -110,16 +130,21 @@ class mds_frame:
                 label=lbl)
         ax.scatter([i[1] for i in nC],[i[2] for i in nC],color="blue",edgecolor="blue",alpha=0.5)
         ax.set_xlim(10,max(x)+pow(10,5))
-        ax.set_title( A + r"$(j)$ vs" + B + r"$(k)$",fontsize=20)
-        ax.set_ylabel( r"$\Delta MDS(k-j)$"  ,fontsize=30 )
-        ax.set_xlabel( r"$(n_k + n_j)$" ,fontsize=30 )
-        ax.legend(loc="best")
+        if not title:
+            ax.set_title( A + r" vs " + B + r"",fontsize=20)
+        else:
+            ax.set_title(title, fontsize=20)
+        if ylabel:
+            ax.set_ylabel( r"$\Delta MDS$"  ,fontsize=30 )
+        if xlabel:
+            ax.set_xlabel( r"$N$" ,fontsize=30 )
+        if legend:
+            ax.legend(loc="best")
         ax.set_xscale("log")
 
-        print "-------------------------------------------------"
-        print "UPs      (" + str(len(ups))+") -> " + ", ".join([ "(+"+ str(i[2])[:5] + ")" + i[-1]  for i in ups])
-        print "Downs    (" + str(len(downs))+") -> " + ", ".join(["("+ str(i[2])[:6] + ")" + i[-1] for i in downs])
-        print "-------------------------------------------------"
+
+
+
 
         if FHW is not None:
             FHW.write("#Motif Model\tAverage Delta MD Score\tAverage N, base 10\tp-value\tComments\n")
@@ -127,6 +152,7 @@ class mds_frame:
             for u in ups:
                 FHW.write(format_str(u[-1],k=30)+"\t" + format_str(str(u[2]),k=10) 
                     + "\t" + format_str(str(math.log(u[1],10))) + "\t" + format_str(str(1.0-u[0])) + "\tUP\n" )
+
             downs.sort(reverse=True)
             for u in downs:
                 FHW.write(format_str(u[-1],k=30)+"\t" + format_str(str(u[2]),k=10) 
@@ -134,51 +160,99 @@ class mds_frame:
             for u in nC:
                 FHW.write(format_str(u[-1],k=30)+"\t" + format_str(str(u[2]),k=10) 
                     + "\t" + format_str(str(math.log(u[1],10))) + "\t" + format_str(str(u[0])) + "\tNo Change\n" )
+        NN=0
+        if AX2:
+            for i in np.arange(0,len(ups),2):
+                lbl     = ",".join([x[-1].lstrip("HO_").split("_")[0] + "(" + str(x[2])[:5] + ")" for x in ups[i:i+2]])
+                ax2.text(0,-NN, lbl,verticalalignment="top",color="red")
+                NN+=1
+            for i in np.arange(0,len(downs),2):
+                lbl     = ",".join([x[-1].lstrip("HO_").split("_")[0] + "(" + str(x[2])[:5] + ")" for x in downs[i:i+2]])
+                ax2.text(0,-NN, lbl,verticalalignment="top", color="green")
+                NN+=1
+            ax2.set_ylim(-NN,0)
+            ax2.set_xlim(0,3)
+            despine(ax2,bottom=True, left=True)        
+            ax2.set_yticks([])
+            ax2.set_xticks([])
+            
         despine(ax)
-        plt.tight_layout()
-        plt.show()
+
+        if S:
+            plt.show()
     def differential_multiple(self, EXPS,
                                 dt=False,smooth=False,
-                                filter_static=False,ax=None,pval_threshold=pow(10,-3)):
+                                filter_static=False,ax=None,
+                                pval_threshold=pow(10,-3),xlabel=True,ylabel=True,title="",AX2=None,FIG=""):
         self.to_array()
         for i in EXPS:
             if len([1 for m in self.motifs if i not in self.motif_models[m].N])>0:
                 print "Experiment Entry: \""+i+"\"is not in current mds_frame"
                 print "loaded and available options are: " + ",".join(self.EXPS.keys())
                 return False
+        S       = False
         if ax is None:
-            F   = plt.figure(figsize=(15,6))
-            ax  = plt.gca()
+            F   = plt.figure(figsize=(15,6),facecolor="white")
+            ax  = F.add_axes([0.1,0.4,0.8,0.4])
+            ax2 = F.add_axes([0.1,0.1,0.8,0.2])
+            S   = True
+        ax.set_title(title)
         xs      = range(len(EXPS))
         lines   = list()
+        SIG     = {}
         for m in self.motifs:
             if dt:
                 ys      = [0] + [ self.dMDS(m, EXPS[i+1],EXPS[i]) for i in range(len(EXPS)-1)]
-                pvals   = [ self.compute_pvalue(m,EXPS[i+1],EXPS[i]) for i in range(len(EXPS)-1)]
+                pvals   = [0.5] + [ self.compute_pvalue(m,EXPS[i+1],EXPS[i]) for i in range(len(EXPS)-1)]
             else:
-                ys  = [ self.dMDS(m, EXPS[i],EXPS[0]) for i in range(len(EXPS))] 
+                ys      = [ self.dMDS(m, EXPS[i],EXPS[0]) for i in range(len(EXPS))] 
                 pvals   = [ self.compute_pvalue(m,EXPS[i],EXPS[0]) for i in range(len(EXPS)-1)]
+            for i,p in enumerate(pvals):
+                if i not in SIG:
+                    SIG[i]  = list()
+                if p > (1.0 - pval_threshold) or p < pval_threshold:
+                    SIG[i].append((ys[i],m.lstrip("HO_").split('_')[0]))
+
             X,Y     = xs,ys
             if smooth:
                 x_sm,y_sm= np.array(xs), np.array(ys)
                 x_smooth = np.linspace(x_sm.min(), x_sm.max(), 100)
-                y_smooth = spline(xs, ys, x_smooth,order=2)
+                y_smooth = spline(xs, ys, x_smooth,order=3)
                 X,Y      = x_smooth,y_smooth
             if not filter_static or max(pvals) > (1.0 - pval_threshold) or min(pvals)<pval_threshold:
                 if max(pvals) > (1.0 - pval_threshold) or min(pvals)<pval_threshold: 
-                    l=ax.plot(X,Y,lw=1.0,color="blue",alpha=1.0)
+                    l=ax.plot(X,Y,lw=1.0,color="red",alpha=1.0)
                 else:
-                    l=ax.plot(X,Y,lw=1.0,color="blue",alpha=0.2)
-                
-        plt.xticks(xs)
-        plt.ylabel( r"$\Delta MDS(k-j)$"  ,fontsize=30 )
-        if dt:
-            ax.set_xticklabels(["Start"] +[ EXPS[i+1] + "-" + EXPS[i] for i in range(len(EXPS)-1)],rotation=10,fontsize=15)
+                    l=ax.plot(X,Y,lw=1.0,color="blue",alpha=0.07)
+
+        ax.set_xticks(xs)
+        if AX2:
+            ax2.set_xticks(xs)
+            ax2.set_yticks([])
+            ax2.set_xticklabels([])
+            ax2.set_yticklabels([])
+
+            for i in SIG:
+                SIG[i].sort()
+                labels  = [y + "(" + str(x)[:5] + ")" for x,y in SIG[i]]    
+                ax2.text(i-0.25,0, "\n".join([",".join( labels[i:i+2] )  for i in np.arange(0,len(labels),2)]),verticalalignment="top")
+            ax2.set_ylim(-10,1)
+            despine(ax2,left=True,bottom=True)
+        if ylabel:
+            ax.set_ylabel( r"$\Delta MDS(k-j)$"  ,fontsize=30 )
+
+        if xlabel:
+            if dt:
+                ax.set_xticklabels(["Start"] +[ EXPS[i+1] + "-" + EXPS[i] for i in range(len(EXPS)-1)],rotation=12,fontsize=15)
+            else:
+                ax.set_xticklabels([ EXPS[i] + "-" + EXPS[0] for i in range(len(EXPS))],rotation=12,fontsize=15)            
         else:
-            ax.set_xticklabels([ EXPS[i] + "-" + EXPS[0] for i in range(len(EXPS))],rotation=10,fontsize=15)            
+            ax.set_xticks([])
         despine(ax)
-        plt.tight_layout()
-        plt.show()
+        if FIG:
+            plt.savefig(FIG)
+        if S:
+            plt.show()
 
 
 
@@ -192,51 +266,38 @@ class mds_frame:
 
 if __name__ == "__main__":
     DIR     = "/Users/joazofeifa/Lab/new_motif_distances/motif_hits_mouse/"
-    #DIR     = "/Users/joazofeifa/Lab/new_motif_distances/motif_hits_human_2/"
+    DIR     = "/Users/joazofeifa/Lab/new_motif_distances/motif_hits_human/"
     def add(b,a=DIR , c="_enrichment_stats.tsv"):
         return a+b+c
     
-    SRRS    = ["SRR1145801", "SRR1145808","SRR1145815","SRR1145822", "SRR1145829"]  
-    
-
-
-    # MDS     = mds_frame()
-    
-    # MDS.load_MD_score_file(map(add,["SRR1105737","SRR1105740"]), "HCT116 DMSO")
-    # MDS.load_MD_score_file(map(add,["SRR1105739","SRR1105738"]), "HCT116 Nutlin")
-
-
-    # MDS2     = mds_frame()
-    
-    # MDS2.load_MD_score_file(map(add,["SRR1015583","SRR1015584"]), "AC16 DMSO")
-    # MDS2.load_MD_score_file(map(add,["SRR1015585","SRR1015586"]), "AC16 TNFalpha(10m)")
-    # MDS2.load_MD_score_file(map(add,["SRR1015587","SRR1015588"]), "AC16 TNFalpha(30m)")
-    # MDS2.load_MD_score_file(map(add,["SRR1015589","SRR1015590"]), "AC16 TNFalpha(1hr)")
-
-
-
 
     MDS3    = mds_frame()
 
-    MDS3.load_MD_score_file(map(add,["SRR930691", "SRR930692", "SRR930693", "SRR930694","SRR930684"]), "KLA_DMSO")
-    MDS3.load_MD_score_file(map(add,["SRR930670"]), "KLA_10min") 
-    MDS3.load_MD_score_file(map(add,["SRR930671", "SRR930659","SRR930660","SRR930661","SRR930662"]), "KLA_1hr") 
-    MDS3.load_MD_score_file(map(add,["SRR930672", "SRR930663","SRR930664"]), "KLA_6hr") 
-    MDS3.load_MD_score_file(map(add,["SRR930673", "SRR930665","SRR930666"]), "KLA_12hr") 
-    MDS3.load_MD_score_file(map(add,["SRR930674", "SRR930667","SRR930668"]), "KLA_24hr") 
+    # MDS3.load_MD_score_file(map(add,["SRR1145801"]), "ES_D0")
+    # MDS3.load_MD_score_file(map(add,["SRR1145808"]), "ES_D2")
+    # MDS3.load_MD_score_file(map(add,["SRR1145815"]), "ES_D5")
+    # MDS3.load_MD_score_file(map(add,["SRR1145822"]), "ES_D7")
+    # MDS3.load_MD_score_file(map(add,["SRR1145829"]), "ES_D10")
+    
+    # MDS3.differential_multiple(["ES_D0","ES_D2", 
+    #     "ES_D5","ES_D7","ES_D10"  ],
+    #     smooth=True,filter_static=False,pval_threshold=pow(10,-15),
+    #     dt=True,title="ESC to Pancreas\nCell Type: AC16\n(Wang,2016)")
 
 
-    MDS3.differential_multiple(["KLA_DMSO","KLA_10min", 
-        "KLA_1hr","KLA_6hr","KLA_12hr","KLA_24hr"  ],smooth=True,filter_static=True,pval_threshold=pow(10,-10),dt=False)
+    
+
+    MDS3.load_MD_score_file(map(add,["SRR1015583", "SRR1015584"]), "0(min)")
+    MDS3.load_MD_score_file(map(add,["SRR1015585", "SRR1015586"]), "10(min)")
+    MDS3.load_MD_score_file(map(add,["SRR1015587", "SRR1015588"]), "30(min)")
+    MDS3.load_MD_score_file(map(add,["SRR1015589", "SRR1015590"]), "120(min)")
+    
+    MDS3.differential_single("0(min)", "30(min)")
+
+    # MDS3.differential_multiple(["0(min)","10(min)", 
+    #     "30(min)","120(min)"  ],
+    #     smooth=True,filter_static=True,pval_threshold=pow(10,-5),dt=True,title="Time\n(TNF-alpha Treatment)\nCell Type: AC16\n(Luo,2016)")
 
 
-
-
-    # labels  = SRRS
-    # dlabels = [SRRS[i] +"-" + SRRS[i+1] for i in range(len(labels)-1)]
-    # SRRS    = map(load_MD_score_file, [DIR+x+"_enrichment_stats.tsv" for x in SRRS])
-
-
-    # show_time(SRRS, deriv=True, labels=labels,smooth=True, P=0, FILTER_STATIC=True)
 
 

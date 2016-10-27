@@ -3,10 +3,19 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib import cm
-def despine(ax,right=True, top=True):
+import sys
+sys.path.append("/Users/joazofeifa/Lab/motif_displacement_analysis/motif_displacement_analysis_package/")
+
+def despine(ax,right=True, top=True,left=False, bottom=False):
     if right:
         ax.yaxis.set_ticks_position('left')
         ax.spines['right'].set_visible(False)
+    if left:
+        ax.yaxis.set_ticks_position('left')
+        ax.spines['left'].set_visible(False)
+    if bottom:
+        ax.xaxis.set_ticks_position('bottom')
+        ax.spines['bottom'].set_visible(False)
     if top:
         ax.spines['top'].set_visible(False)
         ax.xaxis.set_ticks_position('bottom')
