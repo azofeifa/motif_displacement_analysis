@@ -22,7 +22,7 @@ def despine(ax,right=True, top=True,left=False, bottom=False):
 
 def show_motif_displacement(G, motif_model,title=""):
     if motif_model not in G:
-        print "motif_model: " + motif_model + " not in load_motif_displacement_raw structure"
+        print ("motif_model: " + motif_model + " not in load_motif_displacement_raw structure")
         return False
     F  = plt.figure(figsize=(15,7))
     axh= F.add_axes([0.1,0.2,0.8,0.6])
