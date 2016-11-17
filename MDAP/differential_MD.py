@@ -77,11 +77,11 @@ class mds_frame:
             X[i,:]/=float(len(disps))
         if ax is None:
             ax  = plt.gca()
-
+        ax.set_title(motif)
         ax.imshow(X, cmap=cm.GnBu,interpolation='nearest', aspect='auto',vmin=np.min(X), vmax=np.max(X))
         ax.set_xticks([])
         ax.set_yticks(range(len(EXPS)))
-        ax.set_yticklabels(EXPS)
+        ax.set_yticklabels(EXPS,fontsize=15,rotation=90)
 
         despine(ax,left=True, bottom=True)
 
@@ -218,6 +218,7 @@ class mds_frame:
 
         if S:
             plt.show()
+        return ups, downs
     def differential_multiple(self, EXPS, base=None,
                                 dt=False,smooth=False,
                                 filter_static=False,ax=None,
@@ -245,10 +246,14 @@ class mds_frame:
 
         lines   = list()
         SIG     = {}
+        ys2      = list()
+        if base:
+            for i in range(len(EXPS)):
+                ys2.append(np.mean([ self.dMDS(m, EXPS[i], base[i]) for m in self.motifs if "CPEB" not in m]))
         for m in self.motifs:
             if base is not None:
                 ys      = [0] + [ self.dMDS(m, EXPS[i], base[i]) for i in range(len(EXPS))]
-                pvals   = [0.5]+ [ self.compute_pvalue(m, EXPS[i],base[i]) for i in range(len(EXPS))]
+                pvals   = [0.5]+ [ self.compute_pvalue(m, EXPS[i],base[i],mean=ys2[i]) for i in range(len(EXPS))]
             elif dt:
                 ys      = [0] + [ self.dMDS(m, EXPS[i+1],EXPS[i]) for i in range(len(EXPS)-1)]
                 pvals   = [0.5] + [ self.compute_pvalue(m,EXPS[i+1],EXPS[i]) for i in range(len(EXPS)-1)]
@@ -278,7 +283,9 @@ class mds_frame:
             ax.set_ylabel( r"$\Delta MDS(k-j)$"  ,fontsize=30 )
 
         if xlabel:
-            if dt:
+            if base:
+                ax.set_xticklabels(["Start"] +[ EXPS[i] + "-" + base[i] for i in range(len(EXPS))],rotation=12,fontsize=15)                
+            elif dt:
                 ax.set_xticklabels(["Start"] +[ EXPS[i+1] + "-" + EXPS[i] for i in range(len(EXPS)-1)],rotation=12,fontsize=15)
             else:
                 ax.set_xticklabels([ EXPS[i] + "-" + EXPS[0] for i in range(len(EXPS))],rotation=12,fontsize=15)            
