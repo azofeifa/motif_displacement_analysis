@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib import cm
 import sys
-sys.path.append("/Users/joazofeifa/Lab/motif_displacement_analysis/motif_displacement_analysis_package/")
+sys.path.append("/Users/joazofeifa/Lab/motif_displacement_analysis/MDAP/")
 
 def despine(ax,right=True, top=True,left=False, bottom=False):
     if right:

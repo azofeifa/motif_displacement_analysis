@@ -236,8 +236,7 @@ class mds_frame:
         S       = False
         if ax is None:
             F   = plt.figure(figsize=(15,6),facecolor="white")
-            ax  = F.add_axes([0.1,0.4,0.8,0.4])
-            ax2 = F.add_axes([0.1,0.1,0.8,0.2])
+            ax  = F.add_axes([0.1,0.1,0.8,0.8])
             S   = True
         ax.set_title(title)
         xs      = range(len(EXPS))
@@ -275,18 +274,6 @@ class mds_frame:
                     l=ax.plot(X,Y,lw=1.0,color="blue",alpha=0.07)
 
         ax.set_xticks(xs)
-        if AX2:
-            ax2.set_xticks(xs)
-            ax2.set_yticks([])
-            ax2.set_xticklabels([])
-            ax2.set_yticklabels([])
-
-            for i in SIG:
-                SIG[i].sort()
-                labels  = [y + "(" + str(x)[:5] + ")" for x,y in SIG[i]]    
-                ax2.text(i-0.25,0, "\n".join([",".join( labels[i:i+2] )  for i in np.arange(0,len(labels),2)]),verticalalignment="top")
-            ax2.set_ylim(-10,1)
-            despine(ax2,left=True,bottom=True)
         if ylabel:
             ax.set_ylabel( r"$\Delta MDS(k-j)$"  ,fontsize=30 )
 
