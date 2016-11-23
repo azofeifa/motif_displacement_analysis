@@ -150,14 +150,14 @@ class mds_frame:
                 pass
         
 
-        x     = [ self.dN(m, B,A) for m in self.motifs if "CPEB" not in m]
-        y     = [ self.dMDS(m, B,A) for m in self.motifs if "CPEB" not in m]
+        x     = [ self.dN(m, B,A) for m in self.motifs ]
+        y     = [ self.dMDS(m, B,A) for m in self.motifs ]
         MEAN   = np.mean(y)
-        z     = [ self.compute_pvalue(m,B,A,mean=MEAN) for m in self.motifs if "CPEB" not in m]
+        z     = [ self.compute_pvalue(m,B,A,mean=MEAN) for m in self.motifs]
 
 
         ups   = [ (k,i,j,self.motifs[l]) for l,(i,j,k) in enumerate(zip(x,y,z)) if i > 30 and j > 0.05 and  k > (1.0 - pval_threshold)]
-        downs = [ (k,i,j,self.motifs[l]) for l,(i,j,k) in enumerate(zip(x,y,z)) if i > 30 and j < -0.045 and  k < pval_threshold]
+        downs = [ (k,i,j,self.motifs[l]) for l,(i,j,k) in enumerate(zip(x,y,z)) if i > 30 and j < -0.05 and  k < pval_threshold]
         nC    = [ (k,i,j,self.motifs[l]) for l,(i,j,k) in enumerate(zip(x,y,z)) if i > 30 and  pval_threshold < k < (1.0 - pval_threshold)]
         lbl   = r"$p-value<10^{" + str(int(math.log(pval_threshold,10))) + "}$"
         if len(ups):
