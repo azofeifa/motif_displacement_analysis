@@ -1,1 +1,1 @@
-__all__ = ['motif_scanning', 'load.py', 'differential_MD']
+__all__ = ['motif_scanning', 'load.py', 'differential_MD', "experiment"]
